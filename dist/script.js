@@ -1,10 +1,27 @@
 const fan = document.getElementById('fan');
 const dialog = document.getElementById('story-window');
 const closeButton = document.getElementById('close-window');
+const audio = document.getElementById('postcard-audio');
+const audioToggle = document.getElementById('audio-toggle');
 let stories = [];
 let currentIndex = 0;
 
+function updateAudioToggle() {
+  const playing = !audio.paused;
+  audioToggle.textContent = playing ? '❚❚ 暫停音樂' : '♫ 播放音樂';
+  audioToggle.setAttribute('aria-label', playing ? '暫停音樂' : '播放音樂');
+  audioToggle.setAttribute('aria-pressed', String(playing));
+}
+
+function playAudio() {
+  audio.play().catch(error => {
+    updateAudioToggle();
+    console.warn('Audio playback needs another user action', error);
+  });
+}
+
 function openStory(index) {
+  const opening = !dialog.open;
   currentIndex = (index + stories.length) % stories.length;
   const story = stories[currentIndex];
   document.getElementById('story-image').src = story.image;
@@ -19,7 +36,11 @@ function openStory(index) {
   document.getElementById('story-progress').textContent = `${story.number} / 0${stories.length}`;
   dialog.querySelector('.window-body').scrollTop = 0;
   dialog.querySelector('.window-story').scrollTop = 0;
-  if (!dialog.open) dialog.showModal();
+  if (opening) {
+    dialog.showModal();
+    audio.currentTime = 0;
+    playAudio();
+  }
 }
 
 function createPostcard(story, index) {
@@ -46,6 +67,11 @@ async function init() {
 
 closeButton.addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+dialog.addEventListener('close', () => { audio.pause(); audio.currentTime = 0; });
+audioToggle.addEventListener('click', () => { if (audio.paused) playAudio(); else audio.pause(); });
+audio.addEventListener('play', updateAudioToggle);
+audio.addEventListener('pause', updateAudioToggle);
+audio.addEventListener('ended', updateAudioToggle);
 document.getElementById('previous-story').addEventListener('click', () => openStory(currentIndex - 1));
 document.getElementById('next-story').addEventListener('click', () => openStory(currentIndex + 1));
 document.addEventListener('keydown', event => {
